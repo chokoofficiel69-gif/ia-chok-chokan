@@ -132,7 +132,8 @@ progress{width:100%;height:10px;margin-top:8px}
 
 <dialog id="settings">
   <h3 style="margin-top:0">⚙️ Réglages</h3>
-  <label for="kGroq">Clé Groq (gratuite) — obligatoire</label>
+  <p class="small">✅ Sans aucune clé, le studio utilise OVH (gratuit). Les clés ci-dessous servent de secours.</p>
+  <label for="kGroq">Clé Groq (gratuite) — secours</label>
   <input type="password" id="kGroq" placeholder="gsk_…" autocomplete="off">
   <p class="small">console.groq.com → API Keys → Create API Key.</p>
   <label for="kGemini">Clé Gemini (gratuite) — secours si Groq sature</label>
@@ -151,7 +152,7 @@ let audioFile = null, style = 'realiste', lastPlan = null, words = [], duration 
 const media = {}; // index plan -> {img?:url, video?:url}
 
 // ---------- réglages ----------
-function refreshWarn(){ $('keyWarn').hidden = !!store.get('k_groq'); $('falHint').textContent = store.get('k_fal') ? '🖼️ Clé fal active : tu peux créer l\'image et la vidéo de chaque plan.' : '💡 Pour créer les images avec ton visage directement ici, ajoute une clé fal.ai dans Réglages. Sinon, copie les prompts dans Google Flow (gratuit).'; }
+function refreshWarn(){ $('keyWarn').hidden = true; $('falHint').textContent = store.get('k_fal') ? '🖼️ Clé fal active : tu peux créer l\'image et la vidéo de chaque plan.' : '💡 Pour créer les images avec ton visage directement ici, ajoute une clé fal.ai dans Réglages. Sinon, copie les prompts dans Google Flow (gratuit).'; }
 refreshWarn();
 ['artist','title','look','idea','lyrics'].forEach(id=>{ const v=store.get('f_'+id); if(v) $(id).value=v; $(id).addEventListener('input',()=>store.set('f_'+id,$(id).value)); });
 $('openSettings').onclick = () => { $('kGroq').value=store.get('k_groq'); $('kGemini').value=store.get('k_gemini'); $('kFal').value=store.get('k_fal'); $('settings').showModal(); };
@@ -172,6 +173,39 @@ $('styles').onclick = (e) => { const b=e.target.closest('button'); if(!b) return
 
 function status(msg, err){ $('status').textContent=msg; $('status').className='status'+(err?' err':''); if(err) $('status').scrollIntoView({behavior:'smooth',block:'center'}); }
 const sleep = (ms) => new Promise(r=>setTimeout(r,ms));
+
+// ---------- OVH AI Endpoints : gratuit, sans clé (2 requêtes / min / modèle) ----------
+const OVH = 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1';
+const OVH_CHAT = ['gpt-oss-120b','Qwen3.5-397B-A17B','Meta-Llama-3_3-70B-Instruct','Qwen3.6-27B','Qwen3.8-27B','gpt-oss-20b','Mistral-Small-3.2-24B-Instruct-2506'];
+const ovhPause = {}; let ovhBlocked = false, ovhModels = null;
+async function ovhList(){ if(ovhModels) return ovhModels; try{ const r=await fetch(OVH+'/models'); const j=await r.json(); ovhModels=(j.data||[]).map(m=>m.id); }catch{ ovhModels=[]; ovhBlocked=true; } return ovhModels; }
+async function ovhChat(messages){
+  if(ovhBlocked) throw new Error('OVH inaccessible');
+  for(const m of OVH_CHAT){
+    if((ovhPause[m]||0) > Date.now()) continue;
+    status('🎬 J\'écris le scénario (OVH gratuit · '+m+')…');
+    let r; try{ r = await fetch(OVH+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m,temperature:0.7,max_tokens:8000,messages})}); }
+    catch(e){ ovhBlocked = true; throw new Error('OVH inaccessible depuis le navigateur'); }
+    if(r.status===429){ ovhPause[m]=Date.now()+61000; continue; }
+    const d = await r.json().catch(()=>null);
+    if(r.ok && d) return d.choices?.[0]?.message?.content || '';
+  }
+  throw new Error('OVH saturé pour le moment');
+}
+async function ovhWhisper(blob, hint){
+  const list = await ovhList(); const m = list.find(x=>/whisper-large-v3$/i.test(x)) || list.find(x=>/whisper/i.test(x));
+  if(!m) throw new Error('Whisper OVH indisponible');
+  const fd = new FormData(); fd.append('file', blob, 'son.wav'); fd.append('model', m); fd.append('response_format','verbose_json');
+  fd.append('timestamp_granularities[]','word'); fd.append('timestamp_granularities[]','segment'); fd.append('language','fr'); fd.append('temperature','0');
+  if(hint) fd.append('prompt', hint);
+  for(let i=0;i<3;i++){
+    const r = await fetch(OVH+'/audio/transcriptions',{method:'POST',body:fd});
+    if(r.status===429){ status('⏳ OVH occupé, nouvel essai dans 30 s…'); await sleep(31000); continue; }
+    const d = await r.json().catch(()=>null); if(r.ok && d) return d;
+    throw new Error(d?.error?.message || ('OVH erreur '+r.status));
+  }
+  throw new Error('OVH saturé');
+}
 
 // ---------- audio → WAV 16 kHz mono (léger pour Whisper) ----------
 async function toWav16k(file){
@@ -217,7 +251,9 @@ async function transcribe(){
   fd.append('language','fr'); fd.append('temperature','0');
   const hint = $('lyrics').value.split(/\s+/).filter(Boolean).slice(0,180).join(' ');
   if(hint) fd.append('prompt', hint);
-  const data = await groq('/audio/transcriptions', { method:'POST', body: fd });
+  let data;
+  try{ status('🎧 J\'écoute ton son et je note chaque mot… (OVH gratuit, jusqu\'à 1 min)'); data = await ovhWhisper(blob, hint); }
+  catch(e){ if(!store.get('k_groq')) throw new Error(e.message+'. Ajoute une clé Groq gratuite dans Réglages en secours.'); status('↪️ OVH indisponible, je passe par Groq…'); data = await groq('/audio/transcriptions', { method:'POST', body: fd }); }
   words = (data.words||[]).map(w=>({ w:String(w.word).trim(), s:+w.start, e:+w.end })).filter(w=>w.w);
   const segs = (data.segments||[]).map(s=>({ start:+s.start, end:+s.end, text:String(s.text||'').trim() })).filter(s=>s.text);
   return segs.length ? segs : [{ start:0, end:duration, text:data.text||'' }];
@@ -260,6 +296,7 @@ Format JSON exact :
 function extractJson(s){ s=String(s).replace(/<think>[\s\S]*?<\/think>/g,''); const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a<0||b<=a) return null; try{ return JSON.parse(s.slice(a,b+1)); }catch{ return null; } }
 async function writePlan(segs){
   const { sys, user } = planPrompt(segs);
+  try{ const j = extractJson(await ovhChat([{role:'system',content:sys},{role:'user',content:user}])); if(j?.plans?.length) return j; }catch(e){ if(!store.get('k_groq') && !store.get('k_gemini')) throw new Error(e.message+'. Réessaie dans 1 minute ou ajoute une clé Groq/Gemini gratuite.'); }
   try{
     const d = await groq('/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
       model:'llama-3.3-70b-versatile', temperature:0.7, response_format:{type:'json_object'}, max_tokens:8000,
@@ -301,7 +338,6 @@ function timedWords(){
 
 // ---------- boutons principaux ----------
 $('listen').onclick = async () => {
-  if(!store.get('k_groq')){ $('openSettings').click(); return; }
   if(!audioFile){ status('Choisis d\'abord ton son.', true); return; }
   $('listen').disabled = true;
   try{
