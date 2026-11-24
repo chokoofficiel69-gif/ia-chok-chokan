@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studio Avatar · Chok Chokan</title>
+<meta name="theme-color" content="#0b0b0e">
+<link rel="icon" href="icon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<script src="https://js.puter.com/v2/"></script>
+<style>
+:root{--bg:#0b0b0e;--card:#16161b;--line:#2a2a33;--txt:#f2f2f5;--mut:#9a9aa8;--acc:#e1121f;--acc2:#ff6a2e;--ok:#3ecf8e;--warn:#ffcc00}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:rgba(11,11,14,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:19px}h1 b{color:var(--acc)}
+header a{color:var(--mut);font-size:13px}
+main{max-width:760px;margin:0 auto;padding:14px 14px 90px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 10px;font-size:16px;display:flex;gap:8px;align-items:center}
+.step{background:var(--acc);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-grid;place-items:center;font-size:13px;flex:none}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 6px}
+input[type=text],textarea,select{width:100%;background:#0f0f13;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px;font:inherit}
+textarea{min-height:90px;resize:vertical}
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:14px;background:linear-gradient(90deg,var(--acc),var(--acc2));color:#fff;font:700 16px system-ui;cursor:pointer;margin-top:10px}
+.btn:disabled{opacity:.45}
+.ghost{background:#0f0f13;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 12px;font:inherit;cursor:pointer}
+.ghost:disabled{opacity:.45}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
+.small{font-size:13px;color:var(--mut)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:#222228;border:1px solid var(--line);border-radius:20px;padding:7px 11px;font-size:13px;cursor:pointer}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.thumbs .t{width:90px;height:120px;border-radius:10px;overflow:hidden;border:2px solid transparent;cursor:pointer;position:relative;background:#000}
+.thumbs .t img{width:100%;height:100%;object-fit:cover}
+.thumbs .t.sel{border-color:var(--acc)}
+.thumbs .t span{position:absolute;bottom:0;left:0;right:0;background:#000a;font-size:11px;text-align:center}
+.keys{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.key{font:12px ui-monospace,monospace;padding:4px 8px;border-radius:6px;border:1px solid var(--line);border-left:3px solid var(--ok)}
+.key.busy{border-left-color:var(--warn)}.key.cool{border-left-color:var(--acc);opacity:.6}
+.clips{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px}
+.clip{background:#000;border:1px solid var(--line);border-radius:10px;aspect-ratio:9/16;display:grid;place-items:center;font-size:12px;color:var(--mut);text-align:center;padding:6px;overflow:hidden}
+.clip video{width:100%;height:100%;object-fit:cover}
+#stage{width:100%;max-width:360px;display:block;margin:10px auto;border-radius:14px;background:#000;aspect-ratio:9/16}
+#log{background:#060608;border-radius:10px;padding:10px;font:12px/1.5 ui-monospace,monospace;color:#b8b8c0;max-height:200px;overflow:auto;white-space:pre-wrap}
+progress{width:100%;height:10px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header><h1>🎭 Studio <b>Avatar</b></h1><a href="./">← Studio clips</a></header>
+<main>
+
+<div class="card">
+  <h2>🔑 Clés gratuites</h2>
+  <label>Clés Agnes (une par ligne — plus tu en mets, moins ça bloque)</label>
+  <textarea id="keys" placeholder="sk-…&#10;sk-…" autocomplete="off" spellcheck="false" style="min-height:70px;font-family:ui-monospace,monospace;font-size:13px"></textarea>
+  <div class="keys" id="keyPool"></div>
+  <p class="small">Clés gratuites sur platform.agnes-ai.com. Elles restent seulement sur cet appareil.</p>
+  <label>Voix gratuite (Puter)</label>
+  <div class="row"><button class="ghost" id="puterBtn">🔑 Se connecter à Puter (gratuit)</button></div>
+  <p class="small" id="puterState">Non connecté — sans Puter, tu peux enregistrer ta propre voix.</p>
+</div>
+
+<div class="card">
+  <h2><span class="step">1</span>Ton visage</h2>
+  <input type="file" id="photo" accept="image/*">
+  <p class="small">Une photo nette de toi, de face. C'est elle qui sera animée.</p>
+  <div class="thumbs" id="imgs"></div>
+  <details style="margin-top:10px"><summary class="small" style="cursor:pointer;color:var(--acc2)">🎬 Te mettre dans une autre scène (facultatif)</summary>
+    <div class="chips" id="scenePresets" style="margin-top:8px"></div>
+    <textarea id="scene" placeholder="Ex : assis dans une voiture de luxe la nuit, néons de la ville" style="margin-top:8px;min-height:60px"></textarea>
+    <button class="ghost" id="sceneBtn" style="width:100%;margin-top:8px">🖼️ Créer la scène</button>
+    <p class="small">L'IA décrit ton visage puis recrée l'image : la ressemblance est proche, pas parfaite.</p>
+  </details>
+</div>
+
+<div class="card">
+  <h2><span class="step">2</span>Ce que tu dis</h2>
+  <div class="row"><input type="text" id="topic" placeholder="Sujet (ex : je me présente, je viens de Vénissieux…)"><select id="dur" style="flex:0 0 110px"><option value="15">15 s</option><option value="30" selected>30 s</option><option value="60">60 s</option></select></div>
+  <button class="ghost" id="writeBtn" style="width:100%;margin-top:8px">✨ Écrire le texte avec l'IA</button>
+  <label>Ton texte (tu peux le modifier)</label>
+  <textarea id="script">Salut, moi c'est Chok, je viens de Vénissieux. Bienvenue chez moi ! Ici, je vous montre comment l'intelligence artificielle peut vous faire gagner du temps : des sites pour vos commerces, des vidéos, des bons plans, et même de la musique. Vous avez un projet, une idée, un commerce ? Dites-moi en commentaire comment je peux vous aider. Abonnez-vous, et on avance ensemble, tranquille, posé.</textarea>
+</div>
+
+<div class="card">
+  <h2><span class="step">3</span>Ta voix</h2>
+  <div class="row">
+    <select id="voice"><option value="Remi|neural">Rémi (homme)</option><option value="Mathieu|standard">Mathieu (homme)</option><option value="Lea|neural">Léa (femme)</option></select>
+    <button class="ghost" id="ttsBtn">🗣️ Voix IA</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="ghost" id="recBtn">🎙️ M'enregistrer</button>
+    <label class="ghost" style="margin:0;text-align:center;cursor:pointer">📁 Fichier audio<input type="file" id="audioFile" accept="audio/*" class="hide"></label>
+  </div>
+  <audio id="voicePrev" controls class="hide" style="width:100%;margin-top:10px"></audio>
+  <p class="small" id="voiceInfo"></p>
+</div>
+
+<div class="card">
+  <h2><span class="step">4</span>Ton avatar vivant</h2>
+  <label>Attitude</label>
+  <div class="chips" id="attPresets"></div>
+  <textarea id="att" style="margin-top:8px;min-height:70px">He is sitting relaxed, looks at the camera and talks naturally to the viewer like a friendly presenter, warm smiles, small natural hand gestures, slight head nods, natural blinking, subtle body movement. Static camera.</textarea>
+  <button class="btn" id="goBtn">🎬 Créer mon avatar</button>
+  <p class="small">L'IA anime ta photo par morceaux de 10 s pour couvrir toute ta voix. Les lèvres bougent naturellement mais ne suivent pas exactement les mots.</p>
+  <div class="clips" id="clips"></div>
+</div>
+
+<div class="card hide" id="finalCard">
+  <h2><span class="step">5</span>Montage final</h2>
+  <canvas id="stage" width="720" height="1280"></canvas>
+  <label><input type="checkbox" id="subs" checked> Sous-titres</label>
+  <button class="btn" id="renderBtn">✂️ Créer la vidéo finale</button>
+  <progress id="prog" value="0" max="1" class="hide"></progress>
+  <div id="out"></div>
+</div>
+
+<div class="card"><h2>📋 Journal</h2><div id="log"></div></div>
+<p class="small" style="text-align:center">Vidéos générées par IA — coche « contenu IA » en publiant sur TikTok / Facebook.</p>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const store = { get:k=>{try{return localStorage.getItem(k)||''}catch{return ''}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}} };
+function log(m, c=''){ const t=new Date().toLocaleTimeString('fr-FR'); $('log').textContent += `[${t}] ${m}\n`; $('log').scrollTop = 1e9; }
+const API = 'https://apihub.agnes-ai.com/v1', POLL = 'https://apihub.agnes-ai.com/agnesapi';
+const TEXT_MODEL = 'agnes-2.5-flash', IMG_MODELS = ['agnes-image-2.5-flash','agnes-image-2.1-flash','agnes-image-2.0-flash'], VIDEO_MODEL = 'agnes-video-2.5-flash';
+const OVH = 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1';
+
+// ---------- pool de clés (tourniquet) ----------
+let pool = [];
+function parseKeys(){
+  const ks = [...new Set($('keys').value.split('\n').map(s=>s.trim()).filter(s=>s.startsWith('sk-')))];
+  store.set('av_keys', ks.join('\n'));
+  pool = ks.map((key,i)=>({ id:i, key, busy:false, coolUntil:0, fails:0 }));
+  renderPool();
+}
+function renderPool(){ $('keyPool').innerHTML = pool.map(k=>{ const c = k.coolUntil>Date.now() ? 'cool' : k.busy ? 'busy' : ''; return `<span class="key ${c}">#${k.id+1} ${k.key.slice(0,7)}…</span>`; }).join(''); }
+setInterval(renderPool, 2000);
+async function takeKey(){
+  if(!pool.length) throw new Error('Ajoute au moins une clé Agnes en haut de la page.');
+  for(;;){
+    const k = pool.filter(k=>!k.busy && k.coolUntil<=Date.now()).sort((a,b)=>a.fails-b.fails)[0];
+    if(k){ k.busy = true; renderPool(); return k; }
+    await sleep(500);
+  }
+}
+function release(k, status){ k.busy=false; if(status===429||status===503){ k.coolUntil = Date.now() + 20000; k.fails++; } else if(status>=200 && status<300) k.fails=Math.max(0,k.fails-1); renderPool(); }
+async function agnes(path, body, label, tries=12){
+  let last;
+  for(let a=0;a<tries;a++){
+    const k = await takeKey(); let r;
+    try{ r = await fetch(API+path,{method:'POST',headers:{Authorization:'Bearer '+k.key,'Content-Type':'application/json'},body:JSON.stringify(body)}); }
+    catch(e){ release(k,0); last=e; await sleep(3000); continue; }
+    release(k, r.status);
+    if(r.status===401||r.status===403){ log(`${label} : clé #${k.id+1} refusée`); k.coolUntil = Date.now()+3600e3; last=new Error('clé refusée'); continue; }
+    if(r.status===429||r.status===503){ const w = Math.min(60, 10 + a*8); log(`${label} : Agnes saturé (${r.status}), autre clé / nouvel essai dans ${w}s`); await sleep(w*1000); last=new Error('Agnes saturé'); continue; }
+    const txt = await r.text(); let j; try{ j=JSON.parse(txt);}catch{ j=null; }
+    if(!r.ok) throw new Error(`${label} : HTTP ${r.status} ${(j?.error?.message||txt).slice(0,160)}`);
+    return j;
+  }
+  throw last || new Error(label+' : échec');
+}
+
+// ---------- texte (Agnes, secours OVH sans clé) ----------
+async function chat(messages, max=800){
+  if(pool.length){ try{ const j = await agnes('/chat/completions',{model:TEXT_MODEL,messages,temperature:0.7,max_tokens:max},'Texte',4); return j.choices?.[0]?.message?.content||''; }catch(e){ log('Agnes texte indisponible → OVH'); } }
+  for(const m of ['gpt-oss-120b','Meta-Llama-3_3-70B-Instruct','Qwen3.6-27B','gpt-oss-20b']){
+    const r = await fetch(OVH+'/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m,messages,max_tokens:max+1500,temperature:0.7})});
+    if(r.ok){ const j=await r.json(); const c=j.choices?.[0]?.message?.content; if(c) return c; }
+  }
+  throw new Error('Aucune IA texte disponible, réessaie dans 1 minute.');
+}
+
+// ---------- Puter (voix gratuite) ----------
+let puterOk = false;
+async function checkPuter(){ try{ puterOk = !!(window.puter && await puter.auth.isSignedIn()); if(puterOk){ const u = await puter.auth.getUser(); $('puterState').innerHTML = `<span class="ok">✓ Connecté (${u.username}) : voix IA prête</span>`; $('puterBtn').disabled = true; } }catch{} }
+$('puterBtn').onclick = async () => { try{ await puter.auth.signIn({ attempt_temp_user_creation:true }); await checkPuter(); }catch(e){ log('Puter : '+(e.message||e.msg||e)); } };
+
+// ---------- images ----------
+let images = [], chosen = null; // {src:dataUri|url, label}
+function renderImgs(){ $('imgs').innerHTML = images.map((im,i)=>`<div class="t ${chosen===im?'sel':''}" data-i="${i}"><img src="${im.src}"><span>${im.label}</span></div>`).join(''); }
+$('imgs').onclick = e => { const t=e.target.closest('[data-i]'); if(!t) return; chosen = images[+t.dataset.i]; renderImgs(); };
+function compress(file, max=1280){ return new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ const im=new Image(); im.onload=()=>{ const s=Math.min(1,max/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*s); c.height=Math.round(im.height*s); c.getContext('2d').drawImage(im,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',0.9)); }; im.src=fr.result; }; fr.readAsDataURL(file); }); }
+$('photo').onchange = async e => { const f=e.target.files[0]; if(!f) return; const src = await compress(f); const im={src,label:'Ma photo',photo:true}; images.unshift(im); chosen = im; renderImgs(); log('Photo prête.'); };
+async function toDataUri(src){ if(src.startsWith('data:')) return src; const b = await (await fetch(src)).blob(); return await new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(b); }); }
+
+const SCENES = { '🚗 Voiture de luxe':'sitting at the wheel of a black luxury sports car at night, city neon lights through the windows', '🗽 New York':'standing in Times Square New York at night, neon billboards, cinematic', '🌕 Sur la lune':'driving a luxury convertible on the moon, Earth in the black sky', '🎙️ Studio podcast':'sitting in a modern podcast studio with a microphone, warm lights', '🏝️ Piscine palace':'sitting relaxed by a luxury hotel pool at golden hour, sunglasses' };
+for(const [k,v] of Object.entries(SCENES)){ const c=document.createElement('span'); c.className='chip'; c.textContent=k; c.onclick=()=>$('scene').value=v; $('scenePresets').appendChild(c); }
+$('sceneBtn').onclick = async () => {
+  const base = images.find(i=>i.photo); if(!base) return log('⚠️ Ajoute d\'abord ta photo.');
+  if(!$('scene').value.trim()) return log('⚠️ Décris la scène.');
+  const b=$('sceneBtn'); b.disabled=true; b.textContent='⏳ Je décris ton visage…';
+  try{
+    let desc = base.desc;
+    if(!desc){
+      const j = await agnes('/chat/completions',{model:TEXT_MODEL,temperature:0,max_tokens:700,messages:[{role:'system',content:'You are a precise portrait analyst. Describe ONLY the person: age range, skin tone, face shape, eyes, eyebrows, nose, lips, hair, facial hair (exact shape), clothing colors. One English paragraph, 80-120 words, no lists.'},{role:'user',content:[{type:'text',text:'Describe this person precisely.'},{type:'image_url',image_url:{url:base.src}}]}]},'Analyse visage',6);
+      desc = base.desc = (j.choices?.[0]?.message?.content||'').trim(); log('Visage décrit.');
+    }
+    b.textContent='⏳ Création de la scène…';
+    const prompt = `Photorealistic vertical 9:16 photo. The person: ${desc}. Scene: ${$('scene').value.trim()}. He looks at the camera, natural pose, cinematic lighting, sharp face, no text, no watermark.`;
+    let url=null;
+    for(const m of IMG_MODELS){ try{ const j = await agnes('/images/generations',{model:m,prompt,size:'2K',ratio:'9:16',n:1,extra_body:{response_format:'url'}},'Image',6); const d=j.data?.[0]||{}; url = d.url || (d.b64_json?'data:image/png;base64,'+d.b64_json:null); if(url) break; }catch(e){ log(e.message); } }
+    if(!url) throw new Error('Image non créée');
+    const im={src:url,label:'Scène'}; images.push(im); chosen=im; renderImgs(); log('✅ Scène créée.');
+  }catch(e){ log('❌ '+e.message); } finally{ b.disabled=false; b.textContent='🖼️ Créer la scène'; }
+};
+
+// ---------- texte ----------
+$('writeBtn').onclick = async () => {
+  const b=$('writeBtn'); b.disabled=true; b.textContent='⏳ J\'écris…';
+  try{
+    const words = Math.round(+$('dur').value * 2.4);
+    const t = await chat([{role:'system',content:'Tu écris des textes de vidéos TikTok parlées face caméra, à la première personne, en français naturel et oral. Réponds uniquement avec le texte à dire, sans titre, sans guillemets, sans emojis, sans indications de scène.'},{role:'user',content:`Sujet : ${$('topic').value||'présentation de moi'}. Environ ${words} mots. Accroche forte au début, appel à commenter ou s'abonner à la fin.`}]);
+    $('script').value = t.replace(/<think>[\s\S]*?<\/think>/g,'').trim(); store.set('av_script',$('script').value);
+  }catch(e){ log('❌ '+e.message); } finally{ b.disabled=false; b.textContent='✨ Écrire le texte avec l\'IA'; }
+};
+
+// ---------- voix ----------
+let voiceBlob = null, voiceDur = 0;
+async function setVoice(blob, label){
+  voiceBlob = blob; $('voicePrev').src = URL.createObjectURL(blob); $('voicePrev').classList.remove('hide');
+  try{ const ac=new AudioContext(); const b=await ac.decodeAudioData(await blob.arrayBuffer()); voiceDur=b.duration; ac.close(); }catch{ voiceDur=0; }
+  $('voiceInfo').textContent = `✅ ${label} · ${voiceDur?voiceDur.toFixed(1)+' s':''}`; log('Voix prête ('+label+').');
+}
+$('ttsBtn').onclick = async () => {
+  if(!puterOk){ log('⚠️ Connecte-toi à Puter (en haut) pour la voix IA gratuite, ou enregistre ta voix.'); return; }
+  const b=$('ttsBtn'); b.disabled=true; b.textContent='⏳…';
+  try{ const [voice,engine] = $('voice').value.split('|'); const a = await puter.ai.txt2speech($('script').value.trim(), {voice, engine, language:'fr-FR'}); const blob = await (await fetch(a.src)).blob(); await setVoice(blob,'voix IA '+voice); }
+  catch(e){ log('❌ Voix : '+(e.message||e.msg||e)); } finally{ b.disabled=false; b.textContent='🗣️ Voix IA'; }
+};
+let rec=null, chunks=[];
+$('recBtn').onclick = async () => {
+  if(rec && rec.state==='recording'){ rec.stop(); return; }
+  try{ const st = await navigator.mediaDevices.getUserMedia({audio:true}); chunks=[]; rec=new MediaRecorder(st); rec.ondataavailable=e=>chunks.push(e.data);
+    rec.onstop=()=>{ st.getTracks().forEach(t=>t.stop()); setVoice(new Blob(chunks,{type:rec.mimeType||'audio/webm'}),'ta voix'); $('recBtn').textContent='🎙️ Réenregistrer'; };
+    rec.start(); $('recBtn').textContent='⏹ Arrêter'; log('Enregistrement… lis ton texte.'); }
+  catch{ log('❌ Micro refusé : autorise le micro dans le navigateur.'); }
+};
+$('audioFile').onchange = e => { const f=e.target.files[0]; if(f) setVoice(f, f.name); };
+
+// ---------- vidéo Agnes ----------
+const ATT = { '😊 Présentateur':$('att').value, '🔥 Énergique':'He talks to the camera with energy and confidence, expressive face, big smiles, dynamic hand gestures, leaning slightly forward, natural blinking. Static camera.', '😎 Posé':'He talks calmly to the camera, relaxed and confident, slow natural gestures, small smile, natural blinking, very subtle body movement. Static camera.', '🎤 Rappeur':'He raps to the camera with rhythm, head bobbing to the beat, hand gestures like a rapper, confident attitude. Static camera.' };
+for(const [k,v] of Object.entries(ATT)){ const c=document.createElement('span'); c.className='chip'; c.textContent=k; c.onclick=()=>$('att').value=v; $('attPresets').appendChild(c); }
+let clips = [];
+function renderClips(){ $('clips').innerHTML = clips.map((c,i)=>`<div class="clip">${c.url?`<video src="${c.url}" muted loop playsinline autoplay></video>`:`Morceau ${i+1}<br>${c.st||'…'}`}</div>`).join(''); }
+async function makeClip(i, first, prompt, seconds){
+  clips[i].st='en file…'; renderClips();
+  const j = await agnes('/videos',{model:VIDEO_MODEL,prompt,mode:'keyframe',size:'720P',aspect_ratio:'9:16',seconds:String(seconds),first_frame:first,n:1},'Vidéo '+(i+1),30);
+  const id = j.video_id||j.id||j.task_id; if(!id) throw new Error('pas d\'identifiant vidéo');
+  log(`Vidéo ${i+1} lancée (${id.slice(0,12)}…)`);
+  const t0=Date.now(); await sleep(40000);
+  for(let a=0;a<120;a++){
+    const k = pool[a % pool.length];
+    let d=null; try{ const r = await fetch(`${POLL}?video_id=${encodeURIComponent(id)}&model_name=${VIDEO_MODEL}`,{headers:{Authorization:'Bearer '+k.key}}); d = await r.json(); }catch{}
+    const s = d?.status;
+    clips[i].st = (d?.progress? d.progress+'%' : 'création…')+' · '+Math.round((Date.now()-t0)/1000)+'s'; renderClips();
+    if(['completed','succeeded','done'].includes(s)){ const url = d.metadata?.url || d.url || d.output?.url; if(url){ clips[i].url=url; renderClips(); log(`✅ Vidéo ${i+1} prête`); return; } }
+    if(['failed','error','cancelled'].includes(s)) throw new Error('Agnes a échoué ('+s+')');
+    await sleep(8000);
+  }
+  throw new Error('trop long');
+}
+$('goBtn').onclick = async () => {
+  parseKeys();
+  if(!chosen) return log('⚠️ Ajoute ta photo (étape 1).');
+  if(!pool.length) return log('⚠️ Ajoute au moins une clé Agnes.');
+  const total = voiceDur || +$('dur').value;
+  const n = Math.max(1, Math.ceil(total / 10)); const sec = Math.min(10, Math.max(4, Math.ceil(total / n)));
+  clips = Array.from({length:n},()=>({})); renderClips();
+  $('goBtn').disabled = true; log(`Je crée ${n} morceau(x) de ${sec} s…`);
+  try{
+    const first = await toDataUri(chosen.src);
+    const prompt = `Realistic video. Keep exactly the same person, face, beard, clothes and background as the first frame. ${$('att').value.trim()} Vertical 9:16, no text, no subtitles, no watermark.`;
+    const res = await Promise.allSettled(clips.map((_,i)=> sleep(i*4000).then(()=>makeClip(i, first, prompt, sec))));
+    res.forEach((r,i)=>{ if(r.status==='rejected'){ clips[i].st='❌ '+r.reason.message; log(`❌ Morceau ${i+1} : ${r.reason.message}`); } });
+    renderClips();
+    if(clips.some(c=>c.url)){ $('finalCard').classList.remove('hide'); log('➡️ Étape 5 : crée la vidéo finale.'); }
+  }catch(e){ log('❌ '+e.message); }
+  finally{ $('goBtn').disabled = false; }
+};
+
+// ---------- montage final ----------
+const cv=$('stage'), g=cv.getContext('2d'), W=720, H=1280;
+const syl = w => Math.max(1,(w.toLowerCase().match(/[aeiouyéèêëàâîïôûù]+/g)||[]).length);
+function wordTimes(text, dur){ const ws=text.split(/\s+/).filter(Boolean); const tot=ws.reduce((a,w)=>a+syl(w)+(/[.,!?;:]$/.test(w)?1.5:0),0); let acc=0.2*tot/Math.max(1,dur); const out=[]; for(const w of ws){ const s=acc/tot*dur*0.97; acc+=syl(w)+(/[.,!?;:]$/.test(w)?1.5:0); out.push({w,s,e:acc/tot*dur*0.97}); } return out; }
+function cover(el){ const ew=el.videoWidth, eh=el.videoHeight; if(!ew) return; const s=Math.max(W/ew,H/eh); g.drawImage(el,(W-ew*s)/2,(H-eh*s)/2,ew*s,eh*s); }
+$('renderBtn').onclick = async () => {
+  const ok = clips.filter(c=>c.url); if(!ok.length) return;
+  $('renderBtn').disabled = true; $('prog').classList.remove('hide');
+  try{
+    try{ await document.fonts.load('60px Anton'); }catch{}
+    const vids = await Promise.all(ok.map(c=>new Promise((res,rej)=>{ const v=document.createElement('video'); v.crossOrigin='anonymous'; v.muted=true; v.playsInline=true; v.preload='auto'; v.src=c.url; v.oncanplaythrough=()=>res(v); v.onerror=()=>rej(new Error('vidéo illisible (CORS)')); v.load(); })));
+    const ac = new AudioContext(); const dest = ac.createMediaStreamDestination();
+    let total = vids.reduce((a,v)=>a+v.duration,0), src=null;
+    if(voiceBlob){ const buf = await ac.decodeAudioData(await voiceBlob.arrayBuffer()); src = ac.createBufferSource(); src.buffer=buf; src.connect(dest); src.connect(ac.destination); total = buf.duration + 0.5; }
+    const words = wordTimes($('script').value.trim(), voiceBlob ? total-0.5 : total);
+    const mime = ['video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+    const stream = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    const rec = new MediaRecorder(stream, mime?{mimeType:mime,videoBitsPerSecond:6e6}:{}); const parts=[]; rec.ondataavailable=e=>e.data.size&&parts.push(e.data); rec.start(1000);
+    const t0 = ac.currentTime + 0.1; if(src) src.start(t0);
+    let cur = -1; const starts=[]; let acc=0; vids.forEach(v=>{ starts.push(acc); acc+=v.duration; });
+    await new Promise(done=>{
+      function frame(){
+        const t = ac.currentTime - t0;
+        // clip courant (boucle si la voix est plus longue)
+        const tt = t % acc; let i = 0; for(let k=0;k<starts.length;k++) if(tt>=starts[k]) i=k;
+        if(i!==cur){ vids.forEach(v=>v.pause()); cur=i; vids[i].currentTime = Math.max(0, tt-starts[i]); vids[i].play().catch(()=>{}); }
+        g.fillStyle='#000'; g.fillRect(0,0,W,H); cover(vids[cur]);
+        if($('subs').checked){
+          const w = words.filter(x=>t>=x.s-0.02).pop();
+          if(w && t < w.e+0.8){
+            const line = words.filter(x=>Math.abs(x.s-w.s)<1.6 && x.s<=w.s+1.2).slice(-5);
+            g.font='900 64px Anton, Impact, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+            let txt = line.map(x=>x.w).join(' ').toUpperCase(); let fs=64; while(g.measureText(txt).width>W-80 && fs>30){ fs-=4; g.font=`900 ${fs}px Anton, Impact, sans-serif`; }
+            const y = H*0.78, tw = g.measureText(txt).width; let x = W/2 - tw/2;
+            g.textAlign='left'; g.lineWidth=10; g.strokeStyle='#000';
+            for(const p of line){ const s=p.w.toUpperCase()+' '; g.strokeText(s,x,y); g.fillStyle = p===w ? '#ffde00' : '#fff'; g.fillText(s,x,y); x+=g.measureText(s).width; }
+          }
+        }
+        $('prog').value = Math.min(1, t/total);
+        if(t < total) requestAnimationFrame(frame); else done();
+      }
+      frame();
+    });
+    vids.forEach(v=>v.pause());
+    await new Promise(r=>{ rec.onstop=r; rec.stop(); }); ac.close();
+    const type = rec.mimeType||mime||'video/webm', url = URL.createObjectURL(new Blob(parts,{type}));
+    $('out').innerHTML = `<video src="${url}" controls playsinline style="width:100%;border-radius:12px;margin-top:10px"></video><a class="btn" style="text-align:center;text-decoration:none" href="${url}" download="avatar_chok.${type.includes('mp4')?'mp4':'webm'}">⬇️ Télécharger</a>`;
+    log('✅ Vidéo finale prête.');
+  }catch(e){ log('❌ Montage : '+e.message+' — tu peux quand même télécharger chaque morceau (appui long sur la vidéo).'); }
+  finally{ $('renderBtn').disabled=false; $('prog').classList.add('hide'); }
+};
+
+// ---------- init ----------
+$('keys').value = store.get('av_keys'); parseKeys(); $('keys').oninput = parseKeys;
+if(store.get('av_script')) $('script').value = store.get('av_script');
+$('script').oninput = () => store.set('av_script', $('script').value);
+window.addEventListener('load', checkPuter);
+log('Prêt. 1) clés Agnes  2) ta photo  3) ton texte  4) ta voix  5) Créer mon avatar.');
+</script>
+</body>
+</html>
