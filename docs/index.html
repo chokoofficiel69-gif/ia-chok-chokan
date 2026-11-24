@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IA Chok Chokan</title>
+<meta name="theme-color" content="#0d0d10">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d10;--card:#17171c;--line:#2a2a33;--txt:#f2f2f5;--mut:#9a9aa8;--acc:#e1121f;--acc2:#ff6a2e;--ok:#3ecf8e}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:rgba(13,13,16,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+h1{margin:0;font-size:19px;letter-spacing:.5px}h1 b{color:var(--acc)}
+main{max-width:760px;margin:0 auto;padding:16px 14px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 10px;font-size:16px;display:flex;gap:8px;align-items:center}
+.step{background:var(--acc);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-grid;place-items:center;font-size:13px;flex:none}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 6px}
+input[type=text],input[type=password],textarea,select{width:100%;background:#0f0f13;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:11px;font:inherit}
+textarea{min-height:84px;resize:vertical}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--mut);cursor:pointer}
+.drop.has{border-color:var(--ok);color:var(--txt)}
+.drop input{display:none}
+.photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.photos img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.styles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.styles button{padding:12px;border-radius:12px;border:1px solid var(--line);background:#0f0f13;color:var(--txt);font:inherit;text-align:left}
+.styles button.on{border-color:var(--acc);background:#2a1012}
+.btn{display:block;width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(90deg,var(--acc),var(--acc2));color:#fff;font:700 17px system-ui;cursor:pointer}
+.btn:disabled{opacity:.5}
+.ghost{background:none;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 12px;font:inherit;cursor:pointer}
+.ghost:disabled{opacity:.5}
+.status{margin-top:12px;font-size:14px;color:var(--mut);min-height:20px}
+.status.err{color:#ff7a7a}
+.shot{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px;background:#111116}
+.shot .top{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--mut)}
+.tag{font-size:12px;padding:2px 8px;border-radius:20px;background:#22222a}
+.tag.perf{background:#3a1218;color:#ffb3b8}
+.shot .lyr{font-style:italic;margin:6px 0;color:#d6d6de}
+.shot .scene{margin:4px 0 8px}
+.shot .media img,.shot .media video{width:100%;border-radius:10px;margin-top:8px;background:#000}
+details{margin-top:6px}summary{cursor:pointer;color:var(--acc2);font-size:14px}
+pre{white-space:pre-wrap;background:#0b0b0e;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;margin:6px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.hide{display:none}
+.small{font-size:13px;color:var(--mut)}
+dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:16px;max-width:520px;width:92%}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+#preview{width:100%;max-width:360px;display:block;margin:10px auto;border-radius:12px;background:#000;aspect-ratio:9/16}
+progress{width:100%;height:10px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>IA <b>CHOK</b> CHOKAN</h1>
+  <button class="ghost" id="openSettings">⚙️ Réglages</button>
+</header>
+<main>
+  <div class="card" id="keyWarn" hidden>
+    <b>Première fois ?</b> Ouvre <b>⚙️ Réglages</b> et colle ta <b>clé Groq gratuite</b> (console.groq.com → API Keys). Elle reste uniquement sur ton téléphone.
+  </div>
+
+  <div class="card">
+    <h2><span class="step">1</span>Ta musique</h2>
+    <div class="drop" id="audioDrop">Appuie pour choisir ton son (MP3, WAV, M4A)<input type="file" id="audio" accept="audio/*"></div>
+    <audio id="player" controls class="hide" style="width:100%;margin-top:10px"></audio>
+    <label>Style du clip</label>
+    <div class="styles" id="styles">
+      <button data-s="realiste" class="on">🎬 Réaliste<br><span class="small">comme une vraie vidéo</span></button>
+      <button data-s="anime">🌸 Anime<br><span class="small">dessin animé japonais</span></button>
+      <button data-s="cartoon3d">🧸 Dessin animé 3D<br><span class="small">style film d'animation</span></button>
+      <button data-s="bd">💥 BD / Comics<br><span class="small">style bande dessinée</span></button>
+    </div>
+  </div>
+
+  <details class="card" id="opts">
+    <summary>⚙️ Options (facultatif — gardé pour la suite)</summary>
+    <label for="artist">Nom d'artiste</label>
+    <input type="text" id="artist" value="Chok Chokan">
+    <label for="title">Titre du son</label>
+    <input type="text" id="title" placeholder="ex : Posé">
+    <label for="look">Ton apparence (pour garder le même visage partout)</label>
+    <input type="text" id="look" placeholder="ex : homme 30 ans, barbe courte, cheveux noirs, survêt noir">
+    <label>Tes photos (pour les images avec ton visage)</label>
+    <div class="drop" id="photoDrop">📸 Ajouter 1 à 4 photos de toi<input type="file" id="photos" accept="image/*" multiple></div>
+    <div class="photos" id="thumbs"></div>
+    <label for="idea">Idées de scènes (sinon l'IA invente d'après tes paroles)</label>
+    <textarea id="idea" placeholder="ex : la nuit à Lyon, sur une moto"></textarea>
+    <label for="lyrics">Tes paroles écrites (si tu les as : transcription encore plus exacte)</label>
+    <textarea id="lyrics" placeholder="Colle tes paroles ici"></textarea>
+  </details>
+
+  <button class="btn" id="listen">🎧 Écouter mon son et écrire le clip</button>
+  <div class="status" id="status"></div>
+
+  <div class="card hide" id="checkCard">
+    <h2><span class="step">2</span>Paroles entendues (calées sur ta voix)</h2>
+    <p class="small">Un mot mal compris ? Corrige-le ici sans toucher aux temps entre crochets. Tu peux aussi décaler un temps.</p>
+    <textarea id="timed" style="min-height:220px;font-family:ui-monospace,monospace;font-size:14px"></textarea>
+    <button class="ghost" id="go" style="margin-top:10px;width:100%;padding:12px">🔁 Refaire le scénario avec mes corrections</button>
+  </div>
+
+  <div class="card hide" id="montageCard">
+    <h2><span class="step">3</span>Ta vidéo paroles (gratuit)</h2>
+    <p class="small">Clip vertical style street : chaque mot claque à l'écran pile sur ta voix. Si tu as créé des images ou vidéos de plans (étape 4), elles passent en fond automatiquement. La création dure le temps du son : laisse l'écran allumé.</p>
+    <canvas id="preview" width="720" height="1280"></canvas>
+    <div class="row">
+      <button class="btn" id="makeVideo" style="flex:1">✂️ Créer la vidéo</button>
+    </div>
+    <button class="ghost" id="testVideo" style="margin-top:8px;width:100%">▶️ Aperçu 15 s (sans enregistrer)</button>
+    <progress id="prog" value="0" max="1" class="hide"></progress>
+    <div id="videoOut"></div>
+  </div>
+
+  <div id="result" class="hide">
+    <div class="card">
+      <h2><span class="step">4</span><span id="rTitle"></span></h2>
+      <p id="rResume" class="small"></p>
+      <details><summary>Personnage (à réutiliser partout)</summary><pre id="rPerso"></pre></details>
+      <p class="small" id="falHint"></p>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost" id="copyAll">📋 Copier tout le scénario</button>
+        <button class="ghost" id="dlJson">💾 Télécharger</button>
+      </div>
+    </div>
+    <div id="shots"></div>
+  </div>
+</main>
+
+<dialog id="settings">
+  <h3 style="margin-top:0">⚙️ Réglages</h3>
+  <label for="kGroq">Clé Groq (gratuite) — obligatoire</label>
+  <input type="password" id="kGroq" placeholder="gsk_…" autocomplete="off">
+  <p class="small">console.groq.com → API Keys → Create API Key.</p>
+  <label for="kGemini">Clé Gemini (gratuite) — secours si Groq sature</label>
+  <input type="password" id="kGemini" placeholder="AIza…" autocomplete="off">
+  <p class="small">aistudio.google.com → Get API key.</p>
+  <label for="kFal">Clé fal.ai (payante, facultative) — images avec ton visage + animation</label>
+  <input type="password" id="kFal" placeholder="xxxx:yyyy" autocomplete="off">
+  <p class="small">Toutes les clés restent seulement sur cet appareil.</p>
+  <div class="row"><button class="btn" id="saveKey" style="flex:1">Enregistrer</button><button class="ghost" id="closeSettings">Fermer</button></div>
+</dialog>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const store = { get(k){ try{return localStorage.getItem(k)||''}catch{return ''} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} } };
+let audioFile = null, style = 'realiste', lastPlan = null, words = [], duration = 0, photos = [];
+const media = {}; // index plan -> {img?:url, video?:url}
+
+// ---------- réglages ----------
+function refreshWarn(){ $('keyWarn').hidden = !!store.get('k_groq'); $('falHint').textContent = store.get('k_fal') ? '🖼️ Clé fal active : tu peux créer l\'image et la vidéo de chaque plan.' : '💡 Pour créer les images avec ton visage directement ici, ajoute une clé fal.ai dans Réglages. Sinon, copie les prompts dans Google Flow (gratuit).'; }
+refreshWarn();
+['artist','title','look','idea','lyrics'].forEach(id=>{ const v=store.get('f_'+id); if(v) $(id).value=v; $(id).addEventListener('input',()=>store.set('f_'+id,$(id).value)); });
+$('openSettings').onclick = () => { $('kGroq').value=store.get('k_groq'); $('kGemini').value=store.get('k_gemini'); $('kFal').value=store.get('k_fal'); $('settings').showModal(); };
+$('closeSettings').onclick = () => $('settings').close();
+$('saveKey').onclick = () => { store.set('k_groq',$('kGroq').value.trim()); store.set('k_gemini',$('kGemini').value.trim()); store.set('k_fal',$('kFal').value.trim()); $('settings').close(); refreshWarn(); if(lastPlan) render(lastPlan); };
+
+// ---------- fichiers ----------
+$('audioDrop').onclick = () => $('audio').click();
+$('audio').onchange = (e) => { audioFile = e.target.files[0]; if(!audioFile) return;
+  $('audioDrop').classList.add('has'); $('audioDrop').firstChild.textContent = '✅ ' + audioFile.name + ' ';
+  $('player').src = URL.createObjectURL(audioFile); $('player').classList.remove('hide'); };
+$('photoDrop').onclick = () => $('photos').click();
+$('photos').onchange = (e) => { photos=[...e.target.files].slice(0,4); $('thumbs').innerHTML='';
+  photos.forEach(f=>{ const i=new Image(); i.src=URL.createObjectURL(f); $('thumbs').appendChild(i); });
+  if(photos.length){ $('photoDrop').classList.add('has'); $('photoDrop').firstChild.textContent='✅ '+photos.length+' photo(s) '; } };
+$('styles').onclick = (e) => { const b=e.target.closest('button'); if(!b) return;
+  [...$('styles').children].forEach(x=>x.classList.remove('on')); b.classList.add('on'); style=b.dataset.s; };
+
+function status(msg, err){ $('status').textContent=msg; $('status').className='status'+(err?' err':''); if(err) $('status').scrollIntoView({behavior:'smooth',block:'center'}); }
+const sleep = (ms) => new Promise(r=>setTimeout(r,ms));
+
+// ---------- audio → WAV 16 kHz mono (léger pour Whisper) ----------
+async function toWav16k(file){
+  const buf = await file.arrayBuffer();
+  const ctx = new (window.AudioContext||window.webkitAudioContext)();
+  const dec = await ctx.decodeAudioData(buf); ctx.close();
+  const off = new OfflineAudioContext(1, Math.ceil(dec.duration*16000), 16000);
+  const src = off.createBufferSource(); src.buffer = dec; src.connect(off.destination); src.start();
+  const out = (await off.startRendering()).getChannelData(0);
+  const ab = new ArrayBuffer(44 + out.length*2), v = new DataView(ab);
+  const w = (o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4,36+out.length*2,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,16000,true); v.setUint32(28,32000,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,out.length*2,true);
+  for(let i=0;i<out.length;i++){ const s=Math.max(-1,Math.min(1,out[i])); v.setInt16(44+i*2, s<0?s*0x8000:s*0x7fff, true); }
+  return { blob: new Blob([ab],{type:'audio/wav'}), duration: dec.duration };
+}
+
+// ---------- Groq ----------
+async function groq(path, init, tries=3){
+  const key = store.get('k_groq'); if(!key) throw new Error('Clé Groq manquante : ouvre ⚙️ Réglages.');
+  let last;
+  for(let i=0;i<tries;i++){
+    const r = await fetch('https://api.groq.com/openai/v1'+path, {...init, headers:{...(init.headers||{}), Authorization:'Bearer '+key}});
+    let d; try{ d=await r.json(); }catch{ d=null; }
+    if(r.ok && d) return d;
+    const msg = d?.error?.message || ('Groq erreur '+r.status);
+    if(r.status===401) throw new Error('Clé Groq refusée : vérifie-la dans Réglages.');
+    if(r.status!==429 && r.status<500) throw new Error(msg);
+    last = new Error(r.status===429 ? 'Groq saturé (limite gratuite), nouvel essai…' : msg);
+    status('⏳ '+last.message); await sleep(6000*(i+1));
+  }
+  throw last;
+}
+
+async function transcribe(){
+  status('🎧 Je prépare ton son…');
+  const { blob, duration: d } = await toWav16k(audioFile); duration = d;
+  if(blob.size > 25*1024*1024) throw new Error('Son trop long (environ 13 min max).');
+  status('🎧 J\'écoute ton son et je note chaque mot… (jusqu\'à 1 min)');
+  const fd = new FormData();
+  fd.append('file', blob, 'son.wav'); fd.append('model','whisper-large-v3'); fd.append('response_format','verbose_json');
+  fd.append('timestamp_granularities[]','word'); fd.append('timestamp_granularities[]','segment');
+  fd.append('language','fr'); fd.append('temperature','0');
+  const hint = $('lyrics').value.split(/\s+/).filter(Boolean).slice(0,180).join(' ');
+  if(hint) fd.append('prompt', hint);
+  const data = await groq('/audio/transcriptions', { method:'POST', body: fd });
+  words = (data.words||[]).map(w=>({ w:String(w.word).trim(), s:+w.start, e:+w.end })).filter(w=>w.w);
+  const segs = (data.segments||[]).map(s=>({ start:+s.start, end:+s.end, text:String(s.text||'').trim() })).filter(s=>s.text);
+  return segs.length ? segs : [{ start:0, end:duration, text:data.text||'' }];
+}
+
+// ---------- scénario ----------
+const STYLES = {
+  realiste: 'photoréaliste, rendu cinéma 35 mm, lumière naturelle, grain léger, comme une vraie vidéo filmée',
+  anime: 'dessin animé style anime japonais, couleurs vives, traits nets',
+  cartoon3d: 'dessin animé 3D style film d\'animation, personnages expressifs',
+  bd: 'style bande dessinée / comics, encrage marqué, aplats de couleurs',
+};
+function planPrompt(segs){
+  const lyrics = $('lyrics').value.trim();
+  const lines = segs.map(s=>`[${s.start.toFixed(1)}s → ${s.end.toFixed(1)}s] ${s.text}`).join('\n');
+  const words = lyrics
+    ? `PAROLES OFFICIELLES de l'artiste (elles font foi, mot pour mot) :\n${lyrics}\n\nDans le champ "paroles", recopie les PAROLES OFFICIELLES exactes ; la transcription sert seulement à savoir QUAND chaque phrase est rappée.`
+    : `Dans le champ "paroles", recopie la transcription mot pour mot.`;
+  const sys = `Tu es réalisateur de clips de rap. Tu découpes une chanson en plans, calés sur les paroles et le rythme. Tu réponds UNIQUEMENT avec un objet JSON valide.`;
+  const user = `Artiste : ${$('artist').value||'le rappeur'}.
+Apparence de l'artiste : ${$('look').value || 'homme, à garder identique dans tout le clip'}.
+Style visuel imposé : ${STYLES[style]}.
+Idées de l'artiste : ${$('idea').value || 'libre, colle au sens des paroles'}.
+Durée du son : ${Math.round(duration)} s.
+Transcription horodatée :
+${lines}
+${words}
+
+Crée le scénario complet du clip :
+- un plan toutes les 3 à 8 secondes, qui couvre toute la chanson (de 0 à ${Math.round(duration)} s) sans trou ;
+- chaque plan illustre ce que disent les paroles à ce moment ;
+- alterne plans "performance" (il rappe face caméra) et "histoire" (scènes, décors) ;
+- image_prompt et video_prompt en ANGLAIS, très détaillés, format vertical 9:16, qui répètent la description physique et le style ;
+- champs en français courts.
+Format JSON exact :
+{"titre":"...","resume":"une phrase","personnage":"description physique précise en anglais",
+"plans":[{"n":1,"debut":0,"fin":5,"paroles":"...","type":"performance|histoire","scene_fr":"...","camera":"...","image_prompt":"...","video_prompt":"..."}]}`;
+  return { sys, user };
+}
+function extractJson(s){ s=String(s).replace(/<think>[\s\S]*?<\/think>/g,''); const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a<0||b<=a) return null; try{ return JSON.parse(s.slice(a,b+1)); }catch{ return null; } }
+async function writePlan(segs){
+  const { sys, user } = planPrompt(segs);
+  try{
+    const d = await groq('/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      model:'llama-3.3-70b-versatile', temperature:0.7, response_format:{type:'json_object'}, max_tokens:8000,
+      messages:[{role:'system',content:sys},{role:'user',content:user}] }) });
+    const j = extractJson(d.choices?.[0]?.message?.content); if(j?.plans?.length) return j;
+    throw new Error('scénario illisible');
+  }catch(e){
+    const gk = store.get('k_gemini'); if(!gk) throw e;
+    status('↪️ Groq indisponible, je passe par Gemini…');
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+encodeURIComponent(gk), {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ systemInstruction:{parts:[{text:sys}]},
+      contents:[{role:'user',parts:[{text:user}]}], generationConfig:{responseMimeType:'application/json',temperature:0.7} }) });
+    const d = await r.json(); if(!r.ok) throw new Error(d.error?.message||'Gemini erreur');
+    const j = extractJson(d.candidates?.[0]?.content?.parts?.map(p=>p.text).join('')); if(j?.plans?.length) return j;
+    throw new Error("L'IA n'a pas rendu un scénario lisible, réessaie.");
+  }
+}
+
+// ---------- texte horodaté ----------
+function fmt(s){ s=+s||0; const m=Math.floor(s/60); return m+':'+(s-m*60).toFixed(1).padStart(4,'0'); }
+function unfmt(x){ const [m,s]=x.split(':'); return s===undefined? +m : (+m)*60 + (+s); }
+function parseTimed(txt){ return txt.split('\n').map(l=>l.match(/^\s*\[\s*([\d:.]+)\s*(?:→|->|-)\s*([\d:.]+)\s*\]\s*(.*)$/)).filter(Boolean).map(m=>({start:unfmt(m[1]),end:unfmt(m[2]),text:m[3].trim()})); }
+
+// mots calés : on garde les temps Whisper, sinon on répartit selon les syllabes
+const syl = w => Math.max(1,(w.toLowerCase().match(/[aeiouyéèêëàâîïôûù]+/g)||[]).length);
+function timedWords(){
+  const segs = parseTimed($('timed').value), out=[];
+  for(const s of segs){
+    const ws = s.text.split(/\s+/).filter(Boolean);
+    const inSeg = words.filter(w => w.s >= s.start-0.25 && w.s < s.end+0.1);
+    if(inSeg.length === ws.length && ws.length){ ws.forEach((w,i)=>out.push({w, s:inSeg[i].s, e:inSeg[i].e})); continue; }
+    // mots corrigés : on garde le début/fin réels de la voix dans ce segment
+    const a = inSeg.length? inSeg[0].s : s.start, b = inSeg.length? inSeg[inSeg.length-1].e : s.end;
+    const tot = ws.reduce((x,w)=>x+syl(w),0); let acc=0;
+    ws.forEach(w=>{ const st=a+(b-a)*acc/tot; acc+=syl(w); out.push({w, s:st, e:a+(b-a)*acc/tot}); });
+  }
+  return out;
+}
+
+// ---------- boutons principaux ----------
+$('listen').onclick = async () => {
+  if(!store.get('k_groq')){ $('openSettings').click(); return; }
+  if(!audioFile){ status('Choisis d\'abord ton son.', true); return; }
+  $('listen').disabled = true;
+  try{
+    const segs = await transcribe();
+    $('timed').value = segs.map(s=>`[${fmt(s.start)} → ${fmt(s.end)}] ${s.text}`).join('\n');
+    $('checkCard').classList.remove('hide'); $('montageCard').classList.remove('hide');
+    drawFrame(timedWords(), 0, 'Prêt');
+    await makePlan();
+  }catch(e){ status('❌ '+e.message, true); }
+  finally{ $('listen').disabled = false; }
+};
+$('go').onclick = () => makePlan();
+async function makePlan(){
+  $('go').disabled = true; $('listen').disabled = true;
+  try{
+    const segs = parseTimed($('timed').value);
+    if(!segs.length) throw new Error('Aucune ligne avec des temps [0:00.0 → 0:04.0].');
+    status('🎬 Paroles notées. J\'écris le scénario du clip, plan par plan…');
+    lastPlan = await writePlan(segs); render(lastPlan);
+    status('✅ Clip prêt : '+lastPlan.plans.length+' plans. Étape 3 : crée ta vidéo paroles.');
+  }catch(e){ status('❌ '+e.message, true); }
+  finally{ $('go').disabled = false; $('listen').disabled = false; }
+}
+
+// ---------- rendu des plans ----------
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function t(s){ s=Math.max(0,Math.round(+s||0)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function render(p){
+  const fal = !!store.get('k_fal');
+  $('result').classList.remove('hide');
+  $('rTitle').textContent = '🎬 ' + (p.titre||'Ton clip');
+  $('rResume').textContent = p.resume||''; $('rPerso').textContent = p.personnage||'';
+  $('shots').innerHTML = p.plans.map((s,i)=>`
+    <div class="shot">
+      <div class="top"><span>Plan ${s.n||i+1} · ${t(s.debut)} → ${t(s.fin)}</span><span class="tag ${s.type==='performance'?'perf':''}">${s.type==='performance'?'🎤 il rappe':'🎞️ histoire'}</span></div>
+      ${s.paroles?`<div class="lyr">« ${esc(s.paroles)} »</div>`:''}
+      <div class="scene">${esc(s.scene_fr)}</div>
+      <div class="small">📷 ${esc(s.camera)}</div>
+      <details><summary>Prompt image</summary><pre>${esc(s.image_prompt)}</pre><button class="ghost" data-c="${i}:image_prompt">📋 Copier</button></details>
+      <details><summary>Prompt vidéo</summary><pre>${esc(s.video_prompt)}</pre><button class="ghost" data-c="${i}:video_prompt">📋 Copier</button></details>
+      ${fal?`<div class="row" style="margin-top:8px"><button class="ghost" data-img="${i}">🖼️ Créer l'image</button><button class="ghost" data-vid="${i}" ${media[i]?.img?'':'disabled'}>🎞️ Animer</button></div>`:''}
+      <div class="media" id="m${i}">${media[i]?.video?`<video src="${media[i].video}" controls playsinline muted loop></video>`:media[i]?.img?`<img src="${media[i].img}">`:''}</div>
+    </div>`).join('');
+}
+$('shots').onclick = async (e) => {
+  const c=e.target.closest('[data-c]'); if(c){ const [i,f]=c.dataset.c.split(':'); copy(lastPlan.plans[+i][f], c); return; }
+  const im=e.target.closest('[data-img]'); if(im) return shotImage(+im.dataset.img, im);
+  const vd=e.target.closest('[data-vid]'); if(vd) return shotVideo(+vd.dataset.vid, vd);
+};
+function copy(text, btn){ navigator.clipboard.writeText(text).then(()=>{ const o=btn.textContent; btn.textContent='✅ Copié'; setTimeout(()=>btn.textContent=o,1500); }); }
+$('copyAll').onclick = (e) => copy(lastPlan.plans.map((s,i)=>`PLAN ${s.n||i+1} (${t(s.debut)}-${t(s.fin)}) ${s.type}\nParoles : ${s.paroles||''}\nScène : ${s.scene_fr}\nCaméra : ${s.camera}\nIMAGE : ${s.image_prompt}\nVIDÉO : ${s.video_prompt}`).join('\n\n'), e.target);
+$('dlJson').onclick = () => { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(lastPlan,null,2)],{type:'application/json'})); a.download='scenario-clip.json'; a.click(); };
+
+// ---------- fal.ai (facultatif, payant) ----------
+let falMod = null, photoUrls = null;
+async function falClient(){ if(!falMod){ falMod = (await import('https://esm.sh/@fal-ai/client@1')).fal; } falMod.config({credentials: store.get('k_fal')}); return falMod; }
+async function falRun(id, input, btn, label){
+  const fal = await falClient(); const o = btn.textContent; btn.disabled = true;
+  try{
+    const r = await fal.subscribe(id, { input, mode:'polling', pollInterval:3000, onQueueUpdate:u=>{ btn.textContent = u.status==='IN_QUEUE' ? `⏳ file (${u.queue_position??'?'})` : '⏳ '+label+'…'; } });
+    return r.data;
+  }catch(err){ const m = err?.body?.detail ? JSON.stringify(err.body.detail) : (err?.message||String(err)); status('❌ fal.ai : '+m, true); throw err; }
+  finally{ btn.disabled=false; btn.textContent=o; }
+}
+async function shotImage(i, btn){
+  if(!photos.length){ status('Ajoute tes photos dans ⚙️ Options pour garder ton visage.', true); $('opts').open=true; return; }
+  const fal = await falClient();
+  if(!photoUrls) { btn.textContent='⏳ envoi photos…'; photoUrls = await Promise.all(photos.map(f=>fal.storage.upload(f))); }
+  const s = lastPlan.plans[i];
+  const d = await falRun('fal-ai/nano-banana-2/edit', { prompt:`Same person as in the reference photos (keep exactly his face, skin, hair and beard). ${s.image_prompt}`, image_urls:photoUrls, aspect_ratio:'9:16', resolution:'1K', output_format:'jpeg' }, btn, 'image');
+  if(d?.images?.[0]?.url){ media[i] = { img: d.images[0].url }; render(lastPlan); }
+}
+async function shotVideo(i, btn){
+  const s = lastPlan.plans[i]; const len = Math.min(15, Math.max(4, Math.round((s.fin||0)-(s.debut||0)) || 5));
+  const d = await falRun('bytedance/seedance-2.0/image-to-video', { image_url: media[i].img, prompt: s.video_prompt, duration: String(len), resolution:'720p', aspect_ratio:'9:16', generate_audio:false }, btn, 'vidéo');
+  if(d?.video?.url){ media[i].video = d.video.url; render(lastPlan); }
+}
+
+// ---------- montage : vidéo paroles street ----------
+const cv = $('preview'), g = cv.getContext('2d'); const W=720, H=1280;
+const grain = document.createElement('canvas'); grain.width=W/2; grain.height=H/2;
+(()=>{ const x=grain.getContext('2d'), im=x.createImageData(W/2,H/2); for(let i=0;i<im.data.length;i+=4){ const v=Math.random()*255; im.data[i]=im.data[i+1]=im.data[i+2]=v; im.data[i+3]=22; } x.putImageData(im,0,0); })();
+const bgCache = {};
+function bgFor(tm){
+  if(!lastPlan) return null;
+  const i = lastPlan.plans.findIndex(p=>tm>=p.debut && tm<p.fin); if(i<0 || !media[i]) return null;
+  const k = media[i].video ? 'v'+i : 'i'+i;
+  if(!bgCache[k]){
+    if(media[i].video){ const v=document.createElement('video'); v.src=media[i].video; v.crossOrigin='anonymous'; v.muted=true; v.loop=true; v.playsInline=true; v.play().catch(()=>{}); bgCache[k]=v; }
+    else { const im=new Image(); im.crossOrigin='anonymous'; im.src=media[i].img; bgCache[k]=im; }
+  }
+  return { el:bgCache[k], p:lastPlan.plans[i] };
+}
+let energy = 0;
+function fitFont(txt, max){ let s=max; g.font=`900 ${s}px Anton, Impact, "Arial Black", sans-serif`; while(g.measureText(txt).width>W-90 && s>40){ s-=6; g.font=`900 ${s}px Anton, Impact, "Arial Black", sans-serif`; } return s; }
+function drawFrame(tw, tm, label){
+  // fond
+  const bg = bgFor(tm);
+  g.fillStyle='#0c0c0e'; g.fillRect(0,0,W,H);
+  if(bg && (bg.el.videoWidth||bg.el.naturalWidth)){
+    const ew=bg.el.videoWidth||bg.el.naturalWidth, eh=bg.el.videoHeight||bg.el.naturalHeight;
+    const k = (tm-bg.p.debut)/Math.max(1,bg.p.fin-bg.p.debut); const z = 1.05 + 0.08*k + 0.03*energy;
+    const sc = Math.max(W/ew, H/eh)*z; const dw=ew*sc, dh=eh*sc;
+    g.drawImage(bg.el, (W-dw)/2, (H-dh)/2, dw, dh);
+    g.fillStyle='rgba(0,0,0,.38)'; g.fillRect(0,0,W,H);
+  } else {
+    const gr=g.createRadialGradient(W/2,H*0.45,50,W/2,H*0.45,H*0.75); gr.addColorStop(0,`rgba(${60+energy*120},20,24,1)`); gr.addColorStop(1,'#050506');
+    g.fillStyle=gr; g.fillRect(0,0,W,H);
+  }
+  // bandeaux
+  g.font='900 40px Anton, Impact, "Arial Black", sans-serif'; g.textBaseline='middle';
+  const artist = ($('artist').value||'').toUpperCase(), title = ($('title').value||'').toUpperCase();
+  if(artist){ const w=g.measureText(artist).width; g.fillStyle='#000'; g.fillRect(30,60,w+32,64); g.fillStyle='#fff'; g.fillText(artist,46,93); }
+  if(title){ g.save(); g.translate(W-40,95); g.rotate(-0.06); const w=g.measureText(title).width; g.fillStyle='#e1121f'; g.fillRect(-w-32,-32,w+32,64); g.fillStyle='#fff'; g.textAlign='right'; g.fillText(title,-16,2); g.restore(); g.textAlign='left'; }
+  // mot courant
+  let idx=-1; for(let i=0;i<tw.length;i++){ if(tm>=tw[i].s-0.03) idx=i; else break; }
+  const cur = idx>=0 ? tw[idx] : null;
+  const showWord = cur && tm < cur.e + 1.2;
+  if(showWord){
+    const age = tm-cur.s+0.03, slam = Math.max(0,1-age/0.1), sc = 1 + 0.45*slam*slam + 0.04*energy;
+    const txt = cur.w.toUpperCase(); const fs = fitFont(txt, 210);
+    const rot = ((idx*9301+49297)%233280/233280-0.5)*0.16; const red = idx%3===0;
+    g.save(); g.translate(W/2 + (Math.random()-0.5)*14*slam, H*0.47 + (Math.random()-0.5)*14*slam); g.rotate(rot); g.scale(sc,sc);
+    g.font=`900 ${fs}px Anton, Impact, "Arial Black", sans-serif`; g.textAlign='center'; const tw2=g.measureText(txt).width;
+    if(red){ g.fillStyle='#e1121f'; g.fillRect(-tw2/2-24, -fs*0.62, tw2+48, fs*1.24); }
+    g.fillStyle='rgba(0,0,0,.85)'; g.fillText(txt, 10, 10); g.fillStyle='#fff'; g.fillText(txt, 0, 0); g.restore();
+    // ligne en sous-titre
+    const seg = parseTimedCache.find(s=>cur.s>=s.start-0.25 && cur.s<s.end+0.1);
+    if(seg){
+      const lw = tw.filter(w=>w.s>=seg.start-0.25 && w.s<seg.end+0.1); let fs2=34; g.font=`800 ${fs2}px system-ui, sans-serif`;
+      let line=lw.map(w=>w.w).join(' '); while(g.measureText(line).width>W-80 && fs2>18){ fs2-=2; g.font=`800 ${fs2}px system-ui, sans-serif`; }
+      const total=g.measureText(line).width; let x=W/2-total/2; const y=H*0.72;
+      g.fillStyle='rgba(0,0,0,.85)'; g.fillRect(x-18,y-fs2,total+36,fs2*2); g.textAlign='left';
+      for(const w of lw){ g.fillStyle = w===cur ? '#ff2a36' : (w.s<cur.s ? '#eee' : '#666'); g.fillText(w.w, x, y); x += g.measureText(w.w+' ').width; }
+    }
+  }
+  // grain + vignette
+  g.drawImage(grain, 0,0,W,H);
+  if(label && !cur){ g.fillStyle='#fff'; g.textAlign='center'; g.font='900 60px Anton, Impact, sans-serif'; g.fillText(artist||'IA CHOK CHOKAN', W/2, H*0.45); g.textAlign='left'; }
+}
+let parseTimedCache = [];
+
+async function runMontage(record, maxSec){
+  try{ await document.fonts.load('100px Anton'); }catch{}
+  if(!audioFile){ status('Choisis ton son.', true); return; }
+  const tw = timedWords(); parseTimedCache = parseTimed($('timed').value);
+  if(!tw.length){ status('Pas de paroles calées : lance d\'abord l\'étape 1.', true); return; }
+  const ac = new (window.AudioContext||window.webkitAudioContext)();
+  const buf = await ac.decodeAudioData(await audioFile.arrayBuffer());
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const an = ac.createAnalyser(); an.fftSize = 512; const fb = new Uint8Array(an.frequencyBinCount);
+  const dest = ac.createMediaStreamDestination();
+  src.connect(an); an.connect(ac.destination); an.connect(dest);
+  let rec=null, chunks=[], mime='';
+  if(record){
+    const stream = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    mime = ['video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m)) || '';
+    rec = new MediaRecorder(stream, mime?{mimeType:mime, videoBitsPerSecond:6e6}:{}); rec.ondataavailable=e=>e.data.size&&chunks.push(e.data); rec.start(1000);
+  }
+  const t0 = ac.currentTime + 0.1; src.start(t0); const total = Math.min(buf.duration, maxSec||buf.duration);
+  $('prog').classList.remove('hide'); $('makeVideo').disabled = $('testVideo').disabled = true;
+  await new Promise(res=>{
+    function loop(){
+      const tm = ac.currentTime - t0;
+      an.getByteFrequencyData(fb); let e=0; for(let i=1;i<8;i++) e+=fb[i]; energy = Math.min(1, Math.max(0,(e/7-120)/120));
+      drawFrame(tw, Math.max(0,tm)); $('prog').value = Math.min(1, tm/total);
+      if(tm < total) requestAnimationFrame(loop); else res();
+    }
+    loop();
+  });
+  try{ src.stop(); }catch{}
+  if(rec){
+    await new Promise(r=>{ rec.onstop=r; rec.stop(); });
+    const type = rec.mimeType || mime || 'video/webm'; const ext = type.includes('mp4') ? 'mp4' : 'webm';
+    const url = URL.createObjectURL(new Blob(chunks,{type}));
+    const name = (($('artist').value||'clip')+'_'+($('title').value||'paroles')).replace(/\s+/g,'_')+'.'+ext;
+    $('videoOut').innerHTML = `<video src="${url}" controls playsinline style="width:100%;border-radius:12px;margin-top:10px"></video><a class="btn" style="text-align:center;text-decoration:none;margin-top:8px" href="${url}" download="${name}">⬇️ Télécharger la vidéo</a>`;
+    status('✅ Vidéo prête ! Télécharge-la et poste-la.');
+  }
+  ac.close(); $('prog').classList.add('hide'); $('makeVideo').disabled = $('testVideo').disabled = false;
+}
+$('makeVideo').onclick = () => { status('🎬 Création en cours… garde l\'écran allumé et cette page ouverte.'); runMontage(true).catch(e=>status('❌ '+e.message,true)); };
+window.__dbg = { runMontage:(r,m)=>runMontage(r,m), setWords:(w,d)=>{words=w;duration=d;}, drawFrame:(tm)=>{parseTimedCache=parseTimed($('timed').value); drawFrame(timedWords(), tm);}, timedWords, toWav16k };
+$('testVideo').onclick = () => runMontage(false, 15).catch(e=>status('❌ '+e.message,true));
+</script>
+</body>
+</html>

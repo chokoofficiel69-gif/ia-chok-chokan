@@ -1,31 +1,23 @@
 # IA Chok Chokan
 
-Studio de clips IA de Chok Chokan.
+Studio de clips IA de Chok Chokan — tout tourne dans le navigateur, sans serveur.
 
-**V1 — du son au scénario** : tu envoies ta musique, tes photos et tes idées ; l'appli transcrit les paroles (Whisper large v3, en français, guidé par tes paroles), te laisse corriger chaque ligne, puis écrit le scénario du clip plan par plan, calé sur les paroles, avec les prompts image et vidéo.
+1. **Écoute du son** : Whisper large v3 (Groq, gratuit) note chaque mot avec son temps exact.
+2. **Paroles calées sur la voix** : tu corriges un mot si besoin, les temps sont gardés.
+3. **Vidéo paroles** (gratuit) : clip vertical style street, chaque mot claque pile sur la voix, rendu dans le téléphone (MP4 ou WebM).
+4. **Scénario du clip** plan par plan (Groq Llama 3.3 70B, secours Gemini), avec prompts image et vidéo.
+5. **Facultatif (fal.ai, payant)** : image de chaque plan avec ton visage (Nano Banana 2) et animation (Seedance 2.0) ; elles passent ensuite en fond de la vidéo paroles.
 
-Tout passe par ton FreeLLMAPI (`/v1/audio/transcriptions` et `/v1/chat/completions`). La clé unifiée est collée dans ⚙️ Réglages et reste dans le navigateur (ou en variable `FREELLMAPI_KEY` côté serveur).
+## Clés (dans ⚙️ Réglages, gardées seulement sur l'appareil)
 
-## Réglages (variables d'environnement, toutes facultatives)
+| Clé | Où | Prix |
+|---|---|---|
+| Groq (obligatoire) | console.groq.com → API Keys | gratuite |
+| Gemini (secours) | aistudio.google.com → Get API key | gratuite |
+| fal.ai (images/vidéos) | fal.ai → Keys | payante à l'usage |
 
-| Variable | Défaut |
-|---|---|
-| `FREELLMAPI_URL` | `https://freellmapi.prixbasmalin.prod.page/v1` |
-| `FREELLMAPI_KEY` | vide (clé saisie dans l'appli) |
-| `STT_MODEL` | `whisper-large-v3` |
-| `CHAT_MODEL` | `auto` |
+## En ligne
 
-## Lancer
+GitHub Pages : Settings → Pages → Branch `main`, dossier `/docs`.
 
-```
-node server.js
-```
-
-Aucune dépendance (Node 20+).
-
-## Prochaines étapes
-
-1. Images de chaque plan avec le visage de l'artiste
-2. Animation vidéo de chaque plan
-3. Synchro des lèvres sur les plans « performance »
-4. Montage automatique calé sur le beat
+Local : `node server.js` (Node 20+, aucune dépendance).
